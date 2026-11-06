@@ -167,6 +167,11 @@ const server = http.createServer((req, res) => {
   }
 
   if (url.pathname === '/') {
+    res.writeHead(302, { Location: '/scene.html' + url.search });
+    return res.end();
+  }
+
+  if (url.pathname === '/rooms') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     const links = [...rooms.values()]
       .map(r => `<li><a href="/scene.html?room=${encodeURIComponent(r.username)}">${r.username}</a> (${r.status})</li>`)
@@ -217,5 +222,5 @@ for (const account of config.accounts) {
 }
 
 server.listen(config.port, () => {
-  console.log(`Mở http://localhost:${config.port} để xem danh sách phòng`);
+  console.log(`Mở http://localhost:${config.port} để vào game, /rooms để xem danh sách phòng`);
 });
