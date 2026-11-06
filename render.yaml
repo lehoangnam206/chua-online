@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chua-online
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /ping
+    envVars:
+      - key: TIKTOK_USERNAMES
+        value: doansinhvien_
+      - key: SIGN_API_KEY
+        sync: false

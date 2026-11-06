@@ -1,0 +1,12 @@
+{
+  "port": 8080,
+  "signApiKey": "",
+  "accounts": [
+    {
+      "username": "doansinhvien_",
+      "title": "CHÙA ONLINE"
+    }
+  ],
+  "pointsPerDiamond": 1,
+  "maxSeats": 120
+}
