@@ -101,10 +101,23 @@ function setStatus(room, status, detail = '') {
   broadcast(room, { type: 'status', status, detail });
 }
 
+function scheduleRetry(room, blocked = false) {
+  clearTimeout(room.retryTimer);
+  room.failures = (room.failures || 0) + 1;
+  const base = blocked ? 180 : 20;
+  const delay = Math.min(600, base * Math.pow(2, Math.max(0, room.failures - 1)));
+  console.log(`[${room.username}] thử kết nối lại sau ${delay} giây`);
+  room.retryTimer = setTimeout(() => connectTikTok(room), delay * 1000);
+}
+
 function connectTikTok(room) {
   clearTimeout(room.retryTimer);
   const options = { enableExtendedGiftInfo: false, fetchRoomInfoOnConnect: false, processInitialData: false };
   if (config.signApiKey) options.signApiKey = config.signApiKey;
+  if (config.session?.sessionId && config.session?.ttTargetIdc) {
+    options.session = { cookie: { type: 'cookie', value: { sessionId: config.session.sessionId, ttTargetIdc: config.session.ttTargetIdc } } };
+    if (config.authenticateWs) options.authenticateWs = true;
+  }
   const conn = new TikTokLiveConnection(room.username, options);
   room.connection = conn;
 
@@ -135,26 +148,31 @@ function connectTikTok(room) {
   conn.on(ControlEvent.DISCONNECTED, () => {
     setStatus(room, 'offline', 'mất kết nối, thử lại sau 30 giây');
     clearTimeout(room.retryTimer);
-    room.retryTimer = setTimeout(() => connectTikTok(room), 30000);
+    scheduleRetry(room);
   });
 
   conn.on(WebcastEvent.STREAM_END, () => {
     setStatus(room, 'offline', 'TikTok báo phiên live kết thúc, tự kết nối lại sau 20 giây');
     clearTimeout(room.retryTimer);
-    room.retryTimer = setTimeout(() => connectTikTok(room), 20000);
+    scheduleRetry(room);
   });
 
   conn.connect()
-    .then(state => setStatus(room, 'live', `roomId ${state.roomId}`))
+    .then(state => {
+      room.failures = 0;
+      setStatus(room, 'live', `roomId ${state.roomId}`);
+    })
     .catch(err => {
       const name = err?.constructor?.name || 'Error';
+      const msgText = String(err?.message || '');
+      const blocked = msgText.includes('DEVICE_BLOCKED');
       const hint = {
         UserOfflineError: 'TikTok báo tài khoản chưa live (hoặc live chưa công khai)',
         SignatureMissingTokensError: 'máy chủ ký kết nối từ chối, nên thêm signApiKey vào config.json',
         SignatureRateLimitError: 'vượt giới hạn miễn phí, nên thêm signApiKey vào config.json'
-      }[name] || 'lỗi kết nối';
-      setStatus(room, 'offline', `${name}: ${hint}. Chi tiết: ${String(err?.message || '').slice(0, 160)}. Thử lại sau 20 giây`);
-      room.retryTimer = setTimeout(() => connectTikTok(room), 20000);
+      }[name] || (blocked ? 'TikTok tạm chặn do kết nối lại quá nhiều lần, sẽ đợi lâu hơn rồi thử lại' : 'lỗi kết nối');
+      setStatus(room, 'offline', `${name}: ${hint}. Chi tiết: ${msgText.slice(0, 160)}`);
+      scheduleRetry(room, blocked);
     });
 }
 
