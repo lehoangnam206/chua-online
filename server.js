@@ -103,7 +103,7 @@ function setStatus(room, status, detail = '') {
 
 function connectTikTok(room) {
   clearTimeout(room.retryTimer);
-  const options = { enableExtendedGiftInfo: true, fetchRoomInfoOnConnect: false };
+  const options = { enableExtendedGiftInfo: false, fetchRoomInfoOnConnect: false };
   if (config.signApiKey) options.signApiKey = config.signApiKey;
   const conn = new TikTokLiveConnection(room.username, options);
   room.connection = conn;
