@@ -103,7 +103,7 @@ function setStatus(room, status, detail = '') {
 
 function connectTikTok(room) {
   clearTimeout(room.retryTimer);
-  const options = { enableExtendedGiftInfo: false, fetchRoomInfoOnConnect: false };
+  const options = { enableExtendedGiftInfo: false, fetchRoomInfoOnConnect: false, processInitialData: false };
   if (config.signApiKey) options.signApiKey = config.signApiKey;
   const conn = new TikTokLiveConnection(room.username, options);
   room.connection = conn;
@@ -139,9 +139,9 @@ function connectTikTok(room) {
   });
 
   conn.on(WebcastEvent.STREAM_END, () => {
-    setStatus(room, 'offline', 'phiên live đã kết thúc, chờ phiên mới');
+    setStatus(room, 'offline', 'TikTok báo phiên live kết thúc, tự kết nối lại sau 20 giây');
     clearTimeout(room.retryTimer);
-    room.retryTimer = setTimeout(() => connectTikTok(room), 60000);
+    room.retryTimer = setTimeout(() => connectTikTok(room), 20000);
   });
 
   conn.connect()
